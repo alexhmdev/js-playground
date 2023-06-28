@@ -191,13 +191,16 @@ function Playground() {
 
   return (
     <div className="min-h-screen items-center justify-center bg-[#0b1015] text-white">
-      <header className="flex justify-center items-center">
+      <header className="flex gap-2 justify-center items-center">
         <img src="/logoRED.svg" alt="logo" className="w-9" />
-        <h1 className="text-2xl font-bold">DritsJS - Playground</h1>
+        <h1 className="text-3xl text-transparent font-extrabold bg-clip-text bg-gradient-to-r from-red-400 to-purple-500">
+          DritsJS - Playground
+        </h1>
         <a
           href="https://github.com/alexhmdev/js-playground"
           target="_blank"
           rel="noreferrer"
+          className="absolute right-2 top-2"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
