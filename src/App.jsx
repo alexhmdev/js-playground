@@ -2,7 +2,7 @@ import { Playground } from './components';
 
 function App() {
   return (
-    <div>
+    <div className="bg-[#0b1015] text-white flex-col  min-h-screen">
       <Playground />
     </div>
   );

@@ -39,13 +39,13 @@ function Playground() {
 
   const setCodeResult = (result) => {
     if (outputRef.current) {
-      outputRef.current.innerHTML += result + '<br />';
+      outputRef.current.innerHTML += result;
     }
     let currentTab = currentTabIndex;
     setTabs((prevTabs) => {
       const newTabs = prevTabs.map((tab, i) => {
         if (i === currentTab) {
-          return { ...tab, codeResult: (tab.codeResult += result + '<br />') };
+          return { ...tab, codeResult: (tab.codeResult += result) };
         } else {
           return tab;
         }
@@ -152,32 +152,67 @@ function Playground() {
   };
 
   useEffect(() => {
-    console.warn('useEffect');
     // mutate console.log to print to the screen
     const oldLog = console.log;
 
     console.log = function (...args) {
-      setCodeResult(`<code class="text-green-500">${args.join(' ')}</code>`);
+      const mappedArgs = args.map((arg) => {
+        if (typeof arg === 'object') {
+          return JSON.stringify(arg, null, 2);
+        } else {
+          return arg;
+        }
+      });
+      setCodeResult(
+        `<pre class="text-green-500">${mappedArgs.join(' ')}</pre>`
+      );
       oldLog(...args, 'logging in ', currentTabIndex);
     };
     // mutate console.error to print to the screen
     const oldError = console.error;
 
     console.error = function (...args) {
-      setCodeResult(`<code class="text-red-500">${args.join(' ')}</code>`);
+      const mappedArgs = args.map((arg) => {
+        // avoid construtor error
+        oldLog(arg.constructor);
+        if (arg.constructor !== Object) {
+          return arg;
+        }
+        if (typeof arg === 'object') {
+          return JSON.stringify(arg, null, 2);
+        }
+        return arg;
+      });
+      setCodeResult(`<pre class="text-red-500">${mappedArgs.join(' ')}</pre>`);
       oldError(...args);
     };
     // mutate console.warn to print to the screen
     const oldWarn = console.warn;
     console.warn = function (...args) {
-      setCodeResult(`<code class="text-yellow-500">${args.join(' ')}</code>`);
+      const mappedArgs = args.map((arg) => {
+        if (typeof arg === 'object') {
+          return JSON.stringify(arg, null, 2);
+        } else {
+          return arg;
+        }
+      });
+      setCodeResult(
+        `<pre class="text-yellow-500">${mappedArgs.join(' ')}</pre>`
+      );
       oldWarn(...args);
     };
 
     // mutate console.info to print to the screen
     const oldInfo = console.info;
     console.info = function (...args) {
-      setCodeResult(`<code className="text-blue-500">${args.join(' ')}</code>`);
+      const mappedArgs = args.map((arg) => {
+        if (typeof arg === 'object') {
+          return JSON.stringify(arg, null, 2);
+        } else {
+          return arg;
+        }
+      });
+      setCodeResult(`<pre class="text-blue-500">${mappedArgs.join(' ')}</pre>`);
       oldInfo(...args);
     };
 
@@ -190,7 +225,7 @@ function Playground() {
   }, [currentTabIndex]);
 
   return (
-    <div className="min-h-screen items-center justify-center bg-[#0b1015] text-white">
+    <div className="flex-col h-screen items-center justify-center">
       <header className="flex gap-2 justify-center items-center">
         <img src="/logoRED.svg" alt="logo" className="w-9" />
         <h1 className="text-3xl text-transparent font-extrabold bg-clip-text bg-gradient-to-r from-red-400 to-purple-500">
@@ -252,12 +287,11 @@ function Playground() {
         cursor="col-resize"
         render={({ getGridProps, getGutterProps }) => (
           <div
-            className="w-full h-screen grid grid-cols-[1fr,12px,1fr]"
+            className="w-full h-full grid grid-cols-[1fr,12px,1fr]"
             {...getGridProps()}
           >
             <div className="overflow-hidden">
               <Editor
-                className="relative overflow-hidden"
                 height="100%"
                 defaultLanguage="javascript"
                 defaultValue={tabs[currentTabIndex].code}
@@ -281,14 +315,11 @@ function Playground() {
               />
             </div>
             <div
-              className="bg-black flex hover:cursor-col-resize flex-col justify-center items-center after:content-[''] after:h-[64px] after:bg-slate-200 after:w-[2px]"
+              className="bg-black flex hover:cursor-col-resize flex-col justify-center items-center after:content-[''] after:h-[64px] after:bg-slate-200 after:w-[2px] after:rounded-lg"
               {...getGutterProps('column', 1)}
             />
             <div className="px-4 overflow-auto">
-              <div
-                ref={outputRef}
-                className="text-green-400 text-base break-words"
-              ></div>
+              <pre ref={outputRef}></pre>
             </div>
           </div>
         )}
