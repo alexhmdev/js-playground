@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Tab from './Tab';
 import { v4 as uuidv4 } from 'uuid';
 import Split from 'react-split-grid';
+import { useDebounce } from '../hooks';
 
 function Playground() {
   const editorRef = useRef(null);
@@ -18,6 +19,10 @@ function Playground() {
     },
   ]);
   const [currentTabIndex, setCurrentTabIndex] = useState(0);
+  const [code, setCode] = useState('// start typing some code... \n');
+
+  // we use the useDebounce hook to delay the execution of the code
+  const debouncedCode = useDebounce(code, 300);
 
   const clearCodeResult = () => {
     setTabs((prevTabs) => {
@@ -81,9 +86,7 @@ function Playground() {
     monaco.editor.setTheme('drits');
   }
 
-  function executeCode() {
-    clearOutput();
-    clearCodeResult();
+  function setCodeFromEditor() {
     const value = editorRef.current.getValue();
     const firstLine = editorRef.current.getModel().getLineContent(1);
     // change tab name to the first line of code
@@ -94,6 +97,7 @@ function Playground() {
             ...tab,
             name:
               firstLine === '' ? `Untitled-${currentTabIndex + 1}` : firstLine,
+            code: value,
           };
         } else {
           return tab;
@@ -101,24 +105,24 @@ function Playground() {
       });
       return newTabs;
     });
+    setCode(value);
+  }
 
+  function executeCode() {
     try {
-      const result = eval(value);
+      const result = eval(code);
       if (result) console.log(result);
     } catch (error) {
       console.error(error);
     }
-    setTabs((prevTabs) => {
-      const newTabs = prevTabs.map((tab, i) => {
-        if (i === currentTabIndex) {
-          return { ...tab, code: value };
-        } else {
-          return tab;
-        }
-      });
-      return newTabs;
-    });
   }
+  useEffect(() => {
+    if (debouncedCode && editorRef.current) {
+      clearCodeResult();
+      clearOutput();
+      executeCode();
+    }
+  }, [debouncedCode]);
 
   const addTab = () => {
     setTabs((prevTabs) => {
@@ -143,7 +147,7 @@ function Playground() {
   const closeTab = (index) => {
     setTabs((prevTabs) => {
       const newTabs = prevTabs
-        .filter((tab, i) => i !== index)
+        .filter((_, i) => i !== index)
         .map((tab) => ({ ...tab, active: false }));
       newTabs[0].active = true;
       return newTabs;
@@ -299,7 +303,7 @@ function Playground() {
                 width="100%"
                 path={tabs[currentTabIndex].id}
                 onMount={handleEditorDidMount}
-                onChange={executeCode}
+                onChange={setCodeFromEditor}
                 options={{
                   fontSize: 16,
                   fontLigatures: true,
