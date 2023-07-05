@@ -2,39 +2,35 @@ import { Editor } from '@monaco-editor/react';
 import dritsTheme from '../themes/drits.json';
 import { useEffect, useRef, useState } from 'react';
 import Tab from './Tab';
-import { v4 as uuidv4 } from 'uuid';
 import Split from 'react-split-grid';
 import { useDebounce } from '../hooks';
+import useTabsStore from '../store/tabsStore';
 
 function Playground() {
   const editorRef = useRef(null);
   const outputRef = useRef(null);
-  const [tabs, setTabs] = useState([
-    {
-      id: uuidv4(),
-      name: 'index.js',
-      code: '// start typing some code... \n',
-      codeResult: '',
-      active: true,
-    },
-  ]);
-  const [currentTabIndex, setCurrentTabIndex] = useState(0);
+  const {
+    tabs,
+    activeTab,
+    addTab,
+    removeTab,
+    setActiveTab,
+    setTabCode,
+    setTabCodeResult,
+    clearTabCodeResult,
+    setTabName,
+  } = useTabsStore((state) => ({
+    ...state,
+  }));
   const [code, setCode] = useState('// start typing some code... \n');
 
   // we use the useDebounce hook to delay the execution of the code
   const debouncedCode = useDebounce(code, 300);
 
   const clearCodeResult = () => {
-    setTabs((prevTabs) => {
-      const newTabs = prevTabs.map((tab, i) => {
-        if (i === currentTabIndex) {
-          return { ...tab, codeResult: '' };
-        } else {
-          return tab;
-        }
-      });
-      return newTabs;
-    });
+    const activeTabId = tabs[activeTab].id;
+    clearTabCodeResult(activeTabId);
+    console.table(tabs[activeTab]);
   };
   const clearOutput = () => {
     if (outputRef.current) {
@@ -46,34 +42,8 @@ function Playground() {
     if (outputRef.current) {
       outputRef.current.innerHTML += result;
     }
-    let currentTab = currentTabIndex;
-    setTabs((prevTabs) => {
-      const newTabs = prevTabs.map((tab, i) => {
-        if (i === currentTab) {
-          return { ...tab, codeResult: (tab.codeResult += result) };
-        } else {
-          return tab;
-        }
-      });
-      return newTabs;
-    });
-  };
-
-  const setActiveTab = (index) => {
-    const newTabs = tabs.map((tab, i) => {
-      if (i === index) {
-        return { ...tab, active: true };
-      } else {
-        return { ...tab, active: false };
-      }
-    });
-    setTabs(() => {
-      outputRef.current.textContent = '';
-      outputRef.current.innerHTML += newTabs[index].codeResult;
-      return newTabs;
-    });
-    setCurrentTabIndex(index);
-    editorRef.current.focus();
+    let activeTabId = tabs[activeTab].id;
+    setTabCodeResult(activeTabId, result);
   };
 
   function handleEditorDidMount(editor, monaco) {
@@ -89,22 +59,10 @@ function Playground() {
   function setCodeFromEditor() {
     const value = editorRef.current.getValue();
     const firstLine = editorRef.current.getModel().getLineContent(1);
-    // change tab name to the first line of code
-    setTabs((prevTabs) => {
-      const newTabs = prevTabs.map((tab, i) => {
-        if (i === currentTabIndex) {
-          return {
-            ...tab,
-            name:
-              firstLine === '' ? `Untitled-${currentTabIndex + 1}` : firstLine,
-            code: value,
-          };
-        } else {
-          return tab;
-        }
-      });
-      return newTabs;
-    });
+    const activeTabId = tabs[activeTab].id;
+    // set the tab name to the first line of code only if it's not already set
+    setTabName(activeTabId, firstLine);
+    setTabCode(activeTabId, value);
     setCode(value);
   }
 
@@ -114,48 +72,42 @@ function Playground() {
       if (result) {
         console.log(result);
       }
-    } catch (error) {}
+    } catch (error) {
+      console.error(error);
+    }
   }
+
+  useEffect(() => {
+    console.table(tabs[activeTab]);
+    if (outputRef.current) {
+      outputRef.current.textContent = '';
+      outputRef.current.innerHTML += tabs[activeTab].codeResult;
+    }
+    if (editorRef.current) editorRef.current.focus();
+  }, [activeTab]);
+
   useEffect(() => {
     if (debouncedCode && editorRef.current) {
       clearCodeResult();
       clearOutput();
       executeCode();
+      console.table(tabs[activeTab]);
     }
   }, [debouncedCode]);
 
-  const addTab = () => {
-    setTabs((prevTabs) => {
-      const newTabs = prevTabs.map((tab) => ({ ...tab, active: false }));
-      return [
-        ...newTabs,
-        {
-          id: uuidv4(),
-          name: `Untitled-${newTabs.length + 1}`,
-          code: '// start typing some code... \n',
-          codeResult: '',
-          active: true,
-        },
-      ];
-    });
-    setCurrentTabIndex((prevIndex) => prevIndex + 1);
+  useEffect(() => {
+    console.table(tabs[activeTab]);
+  }, [tabs]);
+  const addNewTab = () => {
+    addTab();
     clearOutput();
-    editorRef.current.focus();
-    editorRef.current.setPosition({ lineNumber: 2, column: 1 });
   };
 
-  const closeTab = (index) => {
+  const closeTab = (id) => {
     if (tabs.length === 1) {
       return;
     }
-    setTabs((prevTabs) => {
-      const newTabs = prevTabs
-        .filter((_, i) => i !== index)
-        .map((tab) => ({ ...tab, active: false }));
-      newTabs[0].active = true;
-      return newTabs;
-    });
-    setCurrentTabIndex(0);
+    removeTab(id);
   };
 
   // function to map argsuments from a console.log to a string
@@ -180,7 +132,6 @@ function Playground() {
       setCodeResult(
         `<pre class="text-green-500">${mappedArgs(args).join(' ')}</pre>`
       );
-      oldLog(...args, 'logging in ', currentTabIndex);
     };
     // mutate console.error to print to the screen
     const oldError = console.error;
@@ -215,7 +166,7 @@ function Playground() {
       console.warn = oldWarn;
       console.info = oldInfo;
     };
-  }, [currentTabIndex]);
+  }, [activeTab]);
 
   return (
     <div className="flex-col h-screen items-center justify-center">
@@ -247,18 +198,20 @@ function Playground() {
           </svg>
         </a>
       </header>
-      <nav className="flex border-b-[1px] border-slate-500">
+      <nav className="flex border-b-[1px] border-slate-500 overflow-auto">
         {tabs.map((tab, index) => (
           <Tab
             key={tab.id}
             tabIndex={index}
+            id={tab.id}
             name={tab.name}
             active={tab.active}
-            close={closeTab}
+            onClose={closeTab}
             setActiveTab={setActiveTab}
+            changeName={setTabName}
           />
         ))}
-        <button onClick={addTab} className="ml-2">
+        <button onClick={addNewTab} className="ml-2">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -287,10 +240,10 @@ function Playground() {
               <Editor
                 height="100%"
                 defaultLanguage="javascript"
-                defaultValue={tabs[currentTabIndex].code}
+                defaultValue={tabs[activeTab].code}
                 theme="drits"
                 width="100%"
-                path={tabs[currentTabIndex].id}
+                path={tabs[activeTab].id}
                 onMount={handleEditorDidMount}
                 onChange={setCodeFromEditor}
                 options={{

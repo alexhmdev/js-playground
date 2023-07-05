@@ -1,35 +1,56 @@
 import PropTypes from 'prop-types';
+import { useRef } from 'react';
 
-function Tab({ name, active, setActiveTab, close, tabIndex }) {
+function Tab({
+  name,
+  active,
+  setActiveTab,
+  onClose,
+  id,
+  tabIndex,
+  changeName,
+}) {
+  const tabRef = useRef(null);
+  const handleDoubleClick = () => {
+    tabRef.current.contentEditable = true;
+    tabRef.current.focus();
+  };
+  const hanldeBlur = () => {
+    tabRef.current.contentEditable = false;
+    changeName(id, tabRef.current.textContent);
+  };
   return (
     <div
-      className={`flex gap-2  ${
+      className={`flex gap-2 ${
         active && 'border-b-2 border-[#ff8d03] bg-slate-300 bg-opacity-20'
       } `}
     >
       <button
-        onClick={() => setActiveTab(tabIndex)}
-        onAuxClick={() => close(tabIndex)}
+        onClick={() => setActiveTab(id)}
+        onDoubleClick={handleDoubleClick}
+        onAuxClick={() => onClose(id)}
         className={`p-2 ${
-          !active && 'hover:bg-slate-300 hover:bg-opacity-20'
+          !active ? 'hover:bg-slate-300 hover:bg-opacity-20' : ''
         } `}
       >
         <span
-          className={`${
+          className={` ${
             name.includes('//')
               ? 'text-blue-500'
               : name.includes('Untitled')
               ? 'text-red-500'
               : 'text-green-400'
           } font-semibold`}
+          ref={tabRef}
+          onBlur={hanldeBlur}
         >
-          {name.length > 10 ? name.slice(0, 10) + '...' : name}
+          {name}
         </span>
       </button>
       {tabIndex !== 0 ? (
         <button
           className="w-4 flex-grow-0 hover:bg-slate-300 hover:bg-opacity-20 rounded-sm"
-          onClick={() => close(tabIndex)}
+          onClick={() => onClose(id)}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -55,8 +76,10 @@ Tab.propTypes = {
   name: PropTypes.string.isRequired,
   active: PropTypes.bool,
   setActiveTab: PropTypes.func.isRequired,
-  close: PropTypes.func.isRequired,
+  onClose: PropTypes.func.isRequired,
   tabIndex: PropTypes.number.isRequired,
+  id: PropTypes.string.isRequired,
+  changeName: PropTypes.func.isRequired,
 };
 
 Tab.defaultProps = {
