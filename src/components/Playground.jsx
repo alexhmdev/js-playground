@@ -58,10 +58,7 @@ function Playground() {
 
   function setCodeFromEditor() {
     const value = editorRef.current.getValue();
-    const firstLine = editorRef.current.getModel().getLineContent(1);
     const activeTabId = tabs[activeTab].id;
-    // set the tab name to the first line of code only if it's not already set
-    setTabName(activeTabId, firstLine);
     setTabCode(activeTabId, value);
     setCode(value);
   }
