@@ -33,11 +33,27 @@ const useTabsStore = create(
           ],
           activeTab: get().tabs.length,
         }),
-      removeTab: (id) =>
+      removeTab: (id) => {
         set({
-          tabs: get().tabs.filter((tab) => tab.id !== id),
-          activeTab: get().tabs.length - 2,
-        }),
+          tabs: get()
+            .tabs.map((tab) => {
+              return {
+                ...tab,
+                active: false,
+              };
+            })
+            .filter((tab) => tab.id !== id),
+          activeTab: get().tabs.findIndex((tab) => tab.id === id) - 1,
+        });
+        set({
+          tabs: get().tabs.map((tab, index) => {
+            return {
+              ...tab,
+              active: index === get().activeTab ? true : false,
+            };
+          }),
+        });
+      },
       setActiveTab: (id) =>
         set({
           tabs: get().tabs.map((tab) => {

@@ -42,10 +42,10 @@ function Tab({
       >
         <span
           className={` ${
-            name.includes('//')
-              ? 'text-blue-500'
-              : name.includes('Untitled')
+            name.includes('Untitled')
               ? 'text-red-500'
+              : active
+              ? 'text-blue-400'
               : 'text-green-400'
           } font-semibold`}
           ref={tabRef}
