@@ -14,9 +14,16 @@ function Tab({
   const handleDoubleClick = () => {
     tabRef.current.contentEditable = true;
     tabRef.current.focus();
+    tabRef.current.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        tabRef.current.blur();
+      }
+    });
   };
   const hanldeBlur = () => {
     tabRef.current.contentEditable = false;
+    tabRef.current.removeEventListener('keydown');
     changeName(id, tabRef.current.textContent);
   };
   return (
