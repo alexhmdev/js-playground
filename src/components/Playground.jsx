@@ -111,10 +111,10 @@ function Playground() {
   function executeCode() {
     try {
       const result = eval(code);
-      if (result) console.log(result);
-    } catch (error) {
-      console.error(error);
-    }
+      if (result) {
+        console.log(result);
+      }
+    } catch (error) {}
   }
   useEffect(() => {
     if (debouncedCode && editorRef.current) {
@@ -145,6 +145,9 @@ function Playground() {
   };
 
   const closeTab = (index) => {
+    if (tabs.length === 1) {
+      return;
+    }
     setTabs((prevTabs) => {
       const newTabs = prevTabs
         .filter((_, i) => i !== index)
@@ -155,20 +158,27 @@ function Playground() {
     setCurrentTabIndex(0);
   };
 
+  // function to map argsuments from a console.log to a string
+  const mappedArgs = (args) => {
+    return args.map((arg) => {
+      // avoid construtor error
+      if (arg.constructor !== Object) {
+        return arg;
+      }
+      if (typeof arg === 'object') {
+        return JSON.stringify(arg, null, 2);
+      }
+      return arg;
+    });
+  };
+
   useEffect(() => {
     // mutate console.log to print to the screen
     const oldLog = console.log;
 
     console.log = function (...args) {
-      const mappedArgs = args.map((arg) => {
-        if (typeof arg === 'object') {
-          return JSON.stringify(arg, null, 2);
-        } else {
-          return arg;
-        }
-      });
       setCodeResult(
-        `<pre class="text-green-500">${mappedArgs.join(' ')}</pre>`
+        `<pre class="text-green-500">${mappedArgs(args).join(' ')}</pre>`
       );
       oldLog(...args, 'logging in ', currentTabIndex);
     };
@@ -176,32 +186,16 @@ function Playground() {
     const oldError = console.error;
 
     console.error = function (...args) {
-      const mappedArgs = args.map((arg) => {
-        // avoid construtor error
-        oldLog(arg.constructor);
-        if (arg.constructor !== Object) {
-          return arg;
-        }
-        if (typeof arg === 'object') {
-          return JSON.stringify(arg, null, 2);
-        }
-        return arg;
-      });
-      setCodeResult(`<pre class="text-red-500">${mappedArgs.join(' ')}</pre>`);
+      setCodeResult(
+        `<pre class="text-red-500">${mappedArgs(args).join(' ')}</pre>`
+      );
       oldError(...args);
     };
     // mutate console.warn to print to the screen
     const oldWarn = console.warn;
     console.warn = function (...args) {
-      const mappedArgs = args.map((arg) => {
-        if (typeof arg === 'object') {
-          return JSON.stringify(arg, null, 2);
-        } else {
-          return arg;
-        }
-      });
       setCodeResult(
-        `<pre class="text-yellow-500">${mappedArgs.join(' ')}</pre>`
+        `<pre class="text-yellow-500">${mappedArgs(args).join(' ')}</pre>`
       );
       oldWarn(...args);
     };
@@ -209,14 +203,9 @@ function Playground() {
     // mutate console.info to print to the screen
     const oldInfo = console.info;
     console.info = function (...args) {
-      const mappedArgs = args.map((arg) => {
-        if (typeof arg === 'object') {
-          return JSON.stringify(arg, null, 2);
-        } else {
-          return arg;
-        }
-      });
-      setCodeResult(`<pre class="text-blue-500">${mappedArgs.join(' ')}</pre>`);
+      setCodeResult(
+        `<pre class="text-blue-500">${mappedArgs(args).join(' ')}</pre>`
+      );
       oldInfo(...args);
     };
 
