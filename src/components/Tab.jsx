@@ -11,19 +11,21 @@ function Tab({
   changeName,
 }) {
   const tabRef = useRef(null);
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      tabRef.current.blur();
+    }
+  };
   const handleDoubleClick = () => {
     tabRef.current.contentEditable = true;
     tabRef.current.focus();
-    tabRef.current.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        tabRef.current.blur();
-      }
-    });
+    tabRef.current.addEventListener('keydown', handleKeyDown);
   };
   const hanldeBlur = () => {
     tabRef.current.contentEditable = false;
-    tabRef.current.removeEventListener('keydown');
+    tabRef.current.removeEventListener('keydown', handleKeyDown);
     changeName(id, tabRef.current.textContent);
   };
   return (
